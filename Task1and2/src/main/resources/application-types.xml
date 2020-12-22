@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="inputPost" format="json">
+      <types:shape format="weave" example="examples/post.json"><![CDATA[%dw 2.0
+
+type inputPost = {|
+  userId: Number {"typeId": "int"}, 
+  id: Number {"typeId": "int"}, 
+  title: String, 
+  body: String
+|} {"example": "{\\\"userId\\\":1,\\\"id\\\":1,\\\"title\\\":\\\"sunt aut facere repellat provident occaecati excepturi optio reprehenderit\\\",\\\"body\\\":\\\"quia et suscipit\\\\nsuscipit recusandae consequuntur expedita et cum\\\\nreprehenderit molestiae ut ut quas totam\\\\nnostrum rerum est autem sunt rem eveniet architecto\\\"}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+</types:mule>

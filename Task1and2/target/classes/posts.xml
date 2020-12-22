@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="postsFlow" doc:id="29a1f39d-a4b7-421c-997d-7173d995dd2a" >
+		<http:listener doc:name="Copy_of_Listener" doc:id="283d44c1-1195-41b6-88dc-9147d561af04" config-ref="HTTP_Listener_config" path="/posts" >
+			<http:error-response statusCode="404">
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<choice doc:name="Copy_of_Choice" doc:id="28eb87b5-8f61-4ca7-84ee-ac4bf81ceaa6" >
+			<when expression="#[attributes.queryParams.postId !=null]" >
+				<flow-ref doc:name="reqUriParams" doc:id="2844308c-3c0c-4769-9573-81259e282a0e" name="UriParams"/>
+			</when>
+			<when expression="#[attributes.queryParams.postId ==null]" >
+				<flow-ref doc:name="NOreqUriParams" doc:id="3f5b02d3-c275-4c3b-859c-7f2929ae22b4" name="NoUriParams" />
+			</when>
+			<otherwise >
+				<set-payload value="#[payload]" doc:name="Copy_of_Set Payload" doc:id="ff3af1ad-8510-4eb4-931f-416ae53ee3a7" />
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="01ef676e-4f02-4720-9723-ebea6a8f78c7" type="HTTP:NOT_ACCEPTABLE, HTTP:NOT_FOUND">
+				<ee:transform doc:name="Transform Message" doc:id="bc7c2af3-c637-48fb-ae76-0bf9c1ff04fe" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	 "Message":error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="UriParams" doc:id="f4f87e61-54fa-452e-a455-2bee60d8c26c" >
+		<http:request method="GET" doc:name="uriParams" doc:id="e4ba4ea0-4076-474f-8d02-bab909ec34ef" config-ref="HTTP_Request_configuration" path="/posts/{id}/comments" >
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	id : attributes.queryParams.postId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="da3fd69b-64b2-4be0-bf25-54c96b322fb6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload map
+{
+	postId:$.postId,
+	id:$.id,
+	name:$.name,
+	email:$.email,
+	body: $.body
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:bulk-insert doc:name="Bulk insert" doc:id="320cb5c9-6e69-470c-8bc7-b9c7cd7fc969" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into comments(postId,id,name,email,body) values(:postId,:id,:name,:email,:body);]]></db:sql>
+		</db:bulk-insert>
+		<ee:transform doc:name="Transform Message" doc:id="cd21065f-1cb0-4e9b-903d-4fd96e3be926" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status":"sucessfully done "
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="NoUriParams" doc:id="77b607a0-7ab0-4661-ba73-c4a56555ee42" >
+		<http:request method="GET" doc:name="NoUri" doc:id="e2f9b919-7e57-4de7-b50e-f32d943b298f" config-ref="HTTP_Request_configuration" path="/posts" />
+		<ee:transform doc:name="Transform Message" doc:id="bdf01dd8-1988-4352-8fdf-29752d2d5fa2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map
+{
+	userId:$.userId,
+	id:$.id,
+	title:$.title,
+	body: $.body
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:bulk-insert doc:name="Bulk insert" doc:id="16a9ec61-1061-4479-9f04-ff21be419b1e" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into posts(userId,id,title,body) values(:userId,:id,:title,:body);]]></db:sql>
+		</db:bulk-insert>
+		<ee:transform doc:name="Transform Message" doc:id="c28945d8-9943-4f75-8e93-bb263472508b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status":"sucessfully done "
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
